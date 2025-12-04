@@ -1,5 +1,6 @@
 package com.bnpp.kata.book.price.service;
 
+import com.bnpp.kata.book.price.dto.Book;
 import com.bnpp.kata.book.price.dto.BookResponse;
 import com.bnpp.kata.book.price.mapper.BookMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,5 +27,15 @@ class BookServiceTest {
         List<BookResponse> books;
         books = service.getAllBooks();
         assertEquals(5, books.size());
+    }
+
+
+    @Test
+    @DisplayName("Calculate price for a single book with no discount")
+    void testSingleBook_noDiscount() {
+        List<Book> items = List.of(
+                new Book("Clean Code", 1)
+        );
+        assertEquals(50.0, service.calculatePrice(items), 0.01);
     }
 }

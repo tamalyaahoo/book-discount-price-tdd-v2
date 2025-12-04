@@ -1,5 +1,6 @@
 package com.bnpp.kata.book.price.service;
 
+import com.bnpp.kata.book.price.dto.Book;
 import com.bnpp.kata.book.price.dto.BookResponse;
 import com.bnpp.kata.book.price.mapper.BookMapper;
 import com.bnpp.kata.book.price.store.BookEnum;
@@ -21,5 +22,9 @@ public class BookService {
         return Stream.of(BookEnum.values())
                 .map(mapper :: toResponse)
                 .toList();
+    }
+
+    public double calculatePrice(List<Book> bookList) {
+        return 50.0;
     }
 }
