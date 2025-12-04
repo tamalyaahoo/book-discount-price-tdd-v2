@@ -1,6 +1,7 @@
 package com.bnpp.kata.book.price.service;
 
 import com.bnpp.kata.book.price.dto.BookResponse;
+import com.bnpp.kata.book.price.mapper.BookMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,13 +17,14 @@ class BookServiceTest {
 
     @BeforeEach
     void setup() {
-        service = new BookService();
+        service = new BookService(new BookMapper()); // FIX: inject mapper
     }
 
     @Test
     @DisplayName("getAllBooks() → returns exactly 5 books from enum")
     void testGetAllBooksCount() {
-        List<BookResponse> books = service.getAllBooks();
+        List<BookResponse> books;
+        books = service.getAllBooks();
         assertEquals(5, books.size());
     }
 }
