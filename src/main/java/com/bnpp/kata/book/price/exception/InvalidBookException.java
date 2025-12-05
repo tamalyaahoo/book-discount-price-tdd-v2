@@ -1,7 +1,9 @@
 package com.bnpp.kata.book.price.exception;
 
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
+@Getter
 public class InvalidBookException extends RuntimeException {
 
     private final HttpStatus status;
