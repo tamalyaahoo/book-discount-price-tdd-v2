@@ -1,8 +1,10 @@
 package com.bnpp.kata.book.price.controller;
 
+import com.bnpp.kata.book.price.dto.BookPriceResponse;
 import com.bnpp.kata.book.price.dto.BookResponse;
 import com.bnpp.kata.book.price.service.BookService;
 import org.junit.jupiter.api.DisplayName;
+import org.mockito.Mockito;
 import org.springframework.http.MediaType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,13 +14,15 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 
-@WebMvcTest
+@WebMvcTest(BookController.class)
 class BookControllerTest {
 
     @Autowired
@@ -47,6 +51,34 @@ class BookControllerTest {
                 .andExpect(jsonPath("$.length()").value(5))
                 .andExpect(jsonPath("$[0].title").value("Clean Code"))
                 .andExpect(jsonPath("$[4].title").value("Working Effectively with Legacy Code"));
+    }
+
+    @Test
+    @DisplayName("POST /api/books/price/calculate → returns 200 OK with correct totalPrice")
+    void testCalculatePriceSuccess() throws Exception {
+
+        // Mock service response
+          Mockito.when(bookService.calculatePrice(anyList()))
+                 .thenReturn(new BookPriceResponse(95.0));
+
+        // Create request JSON
+        String requestJson = """
+                {
+                   "bookList": [
+                       { "title": "Clean Code", "quantity": 1 },
+                       { "title": "The Clean Coder", "quantity": 1 }
+                   ]
+                }
+                """;
+
+        // Perform request & validate response
+        mockMvc.perform(
+                        post("/api/books/price/calculate")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPrice").value(95.0));
     }
 
 }
