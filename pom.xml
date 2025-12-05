@@ -15,7 +15,9 @@
 	<description>Sample Spring Boot KATA project for Book Discount price calculation </description>
 
 	<properties>
-		<java.version>25</java.version>
+		<java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -54,33 +56,35 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.12</version>
-
                 <executions>
-
-                    <!-- Attach JaCoCo agent to tests -->
+                    <!-- Attach agent before tests -->
                     <execution>
                         <id>prepare-agent</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
+                        <goals><goal>prepare-agent</goal></goals>
                     </execution>
-
-                    <!-- Generate HTML report after tests -->
+                    <!-- Generate report after tests -->
                     <execution>
                         <id>report</id>
                         <phase>test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
+                        <goals><goal>report</goal></goals>
                     </execution>
-
                 </executions>
             </plugin>
-           </plugins>
+
+            <!-- Ensure Surefire does not override argLine incorrectly -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0</version>
+                <!-- Do not override argLine unless merging JaCoCo's -->
+            </plugin>
+
+        </plugins>
 	</build>
 
 </project>
