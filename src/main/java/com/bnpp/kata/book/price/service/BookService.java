@@ -39,6 +39,7 @@ public class BookService {
     }
 
     public BookPriceResponse calculatePrice(List<Book> bookList) {
+        this.validateBasket(bookList);
         Map<String, Integer> mergedBookQuantity  = mergeDuplicateTitles(bookList);
         List<Integer> sortedCounts = extractSortedCounts(mergedBookQuantity);
         if (sortedCounts.isEmpty()) {
@@ -49,6 +50,52 @@ public class BookService {
         return new BookPriceResponse(optimalPrice);
     }
 
+    private void validateBasket(List<Book> items) {
+        requireNonNullList(items);
+        requireNonEmptyList(items);
+        validateEachBookItem(items);
+        ensureAtLeastOnePositiveQuantity(items);
+    }
+
+    private void requireNonNullList(List<Book> items) {
+        Optional.ofNullable(items)
+                .orElseThrow(() -> new InvalidBookException("Basket must not be null"));
+    }
+
+    private void requireNonEmptyList(List<Book> items) {
+        Optional.of(items)
+                .filter(bookList -> !bookList.isEmpty())
+                .orElseThrow(() -> new InvalidBookException("Basket must contain at least one entry"));
+    }
+
+    private void validateEachBookItem(List<Book> items) {
+        items.forEach(item -> {
+            String title = Optional.ofNullable(item.title())
+                    .map(String::trim)
+                    .filter(bookTitle -> !bookTitle.isEmpty())
+                    .orElseThrow(() ->
+                            new InvalidBookException("Book title must not be null or empty"));
+
+            Integer qty = Optional.of(item.quantity())
+                    .orElseThrow(() ->
+                            new InvalidBookException("Quantity for book '%s' must not be null".formatted(title)));
+
+            Optional.of(qty)
+                    .filter(quantity -> quantity >= 0)
+                    .orElseThrow(() ->
+                            new InvalidBookException("Quantity for book '%s' must not be negative".formatted(title)));
+        });
+    }
+
+    private void ensureAtLeastOnePositiveQuantity(List<Book> items) {
+        items.stream()
+                .map(Book::quantity)
+                .filter(Objects::nonNull)
+                .filter( count-> count > 0)
+                .findFirst()
+                .orElseThrow(() ->
+                        new InvalidBookException("Basket must contain at least one book with quantity > 0"));
+    }
 
     private Map<String, Integer> mergeDuplicateTitles(List<Book> items) {
         return items.stream()

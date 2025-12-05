@@ -2,6 +2,7 @@ package com.bnpp.kata.book.price.service;
 
 import com.bnpp.kata.book.price.dto.Book;
 import com.bnpp.kata.book.price.dto.BookResponse;
+import com.bnpp.kata.book.price.exception.InvalidBookException;
 import com.bnpp.kata.book.price.mapper.BookMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 class BookServiceTest {
@@ -134,5 +136,59 @@ class BookServiceTest {
                 new Book("The Clean Coder", 2)
         );
         assertEquals(230.0, service.calculatePrice(items).totalPrice(), 0.01);
+    }
+
+    // ----------------------------------------------------------------------
+    //  VALIDATION TESTS
+    // ----------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Throw exception when basket is null")
+    void testNullBasket_throwsException() {
+        assertThrows(InvalidBookException.class, () -> service.calculatePrice(null));
+    }
+
+    @Test
+    @DisplayName("Throw exception when basket has no entries")
+    void testEmptyBasket_throwsException() {
+        List<Book> items = List.of();
+        assertThrows(InvalidBookException.class, () -> service.calculatePrice(items));
+    }
+
+    @Test
+    @DisplayName("Throw exception when book title is null")
+    void testNullTitle_throwsException() {
+        List<Book> items = List.of(
+                new Book(null, 1)
+        );
+        assertThrows(InvalidBookException.class, () -> service.calculatePrice(items));
+    }
+
+    @Test
+    @DisplayName("Throw exception when book title is empty or blank")
+    void testEmptyTitle_throwsException() {
+        List<Book> items = List.of(
+                new Book("   ", 1)
+        );
+        assertThrows(InvalidBookException.class, () -> service.calculatePrice(items));
+    }
+
+    @Test
+    @DisplayName("Throw exception when quantity is negative")
+    void testNegativeQuantity_throwsException() {
+        List<Book> items = List.of(
+                new Book("Clean Code", -1)
+        );
+        assertThrows(InvalidBookException.class, () -> service.calculatePrice(items));
+    }
+
+    @Test
+    @DisplayName("Throw exception when all quantities are zero")
+    void testZeroCopiesOnly_throwsException() {
+        List<Book> items = List.of(
+                new Book("Clean Code", 0),
+                new Book("The Clean Coder", 0)
+        );
+        assertThrows(InvalidBookException.class, () -> service.calculatePrice(items));
     }
 }
