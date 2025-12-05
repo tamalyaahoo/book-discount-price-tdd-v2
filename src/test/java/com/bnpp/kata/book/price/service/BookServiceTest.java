@@ -87,4 +87,52 @@ class BookServiceTest {
 
         assertEquals(187.50, service.calculatePrice(items).totalPrice(), 0.01);
     }
+
+    @Test
+    @DisplayName("Merge duplicate book titles ignoring case and sum their quantities")
+    void testCaseInsensitiveMerging() {
+        List<Book> items = List.of(
+                new Book("clean code", 1),
+                new Book("Clean Code", 2),
+                new Book("CLEAN CODE", 3)
+        );
+        // Total = 1 + 2 + 3 = 6 copies of 1 book
+        double price = service.calculatePrice(items).totalPrice();
+
+        assertEquals(6 * 50.0, price, 0.01); // No discount because only 1 distinct title
+    }
+
+    @Test
+    @DisplayName("Calculate optimal pricing for multi-set scenario resulting in 320 EUR")
+    void testKataExample_multipleSets_Optimal320() {
+        List<Book> items = List.of(
+                new Book("Clean Code", 2),
+                new Book("The Clean Coder", 2),
+                new Book("Clean Architecture", 2),
+                new Book("TDD", 1),
+                new Book("Legacy Code", 1)
+        );
+
+        assertEquals(320.0, service.calculatePrice(items).totalPrice(), 0.01);
+    }
+
+    @Test
+    @DisplayName("Calculate price when multiple copies of a single title are purchased with no discount")
+    void testSameTitleMultipleCopies_noDiscount() {
+        List<Book> items = List.of(
+                new Book("Clean Code", 3)
+        );
+        assertEquals(150.0, service.calculatePrice(items).totalPrice(), 0.01);
+    }
+
+    @Test
+    @DisplayName("Choose optimal grouping when some titles have multiple copies")
+    void testThreeTitles_multipleCopies_mixedOptimal() {
+        List<Book> items = List.of(
+                new Book("Clean Code", 2),
+                new Book("Clean Architecture", 1),
+                new Book("The Clean Coder", 2)
+        );
+        assertEquals(230.0, service.calculatePrice(items).totalPrice(), 0.01);
+    }
 }
