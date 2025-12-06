@@ -1,7 +1,10 @@
 package com.bnpp.kata.book.price.dto;
 
-public record BookPriceResponse(
-        double totalPrice
-) {
+import java.util.List;
 
+public record BookPriceResponse(
+        List<Book> bookList,
+        double totalPrice,
+        double discountPrice
+) {
 }

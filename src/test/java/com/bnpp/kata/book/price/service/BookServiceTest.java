@@ -7,6 +7,7 @@ import com.bnpp.kata.book.price.mapper.BookMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 
 import java.util.List;
 
@@ -18,9 +19,12 @@ class BookServiceTest {
 
     private BookService service;
 
+    @Mock
+    private BookMapper mapper;
+
     @BeforeEach
     void setup() {
-        service = new BookService(new BookMapper()); // FIX: inject mapper
+        service = new BookService(mapper); // FIX: inject mapper
     }
 
     @Test

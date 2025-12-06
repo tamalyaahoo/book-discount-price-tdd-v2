@@ -2,6 +2,7 @@ package com.bnpp.kata.book.price.controller;
 
 import com.bnpp.kata.book.price.dto.BookPriceResponse;
 import com.bnpp.kata.book.price.dto.BookResponse;
+import com.bnpp.kata.book.price.exception.InvalidBookException;
 import com.bnpp.kata.book.price.service.BookService;
 import org.junit.jupiter.api.DisplayName;
 import org.mockito.Mockito;
@@ -123,5 +124,41 @@ class BookControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    @DisplayName("POST /api/books/price/calculate → Handle MethodArgumentNotValidException")
+    void testHandleValidationException() throws Exception {
 
+        Mockito.when(bookService.calculatePrice(anyList()))
+                .thenThrow(new IllegalArgumentException("Validation failed"));
+
+        String json = """
+      {
+        "bookList": [
+          { "title": "", "quantity": 1 }
+        ]
+      }
+      """;
+
+        mockMvc.perform(post("/api/books/price/calculate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation failed"));
+    }
+
+    @Test
+    void testHandleInvalidBookException() throws Exception {
+        when(bookService.calculatePrice(anyList()))
+                .thenThrow(new InvalidBookException("Qty invalid"));
+
+        String json = """
+      { "bookList": [ { "title": "Clean Code", "quantity": -5 } ] }
+      """;
+
+        mockMvc.perform(post("/api/books/price/calculate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Qty invalid"));
+    }
 }
