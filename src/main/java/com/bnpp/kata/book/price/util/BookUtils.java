@@ -26,7 +26,8 @@ public final class BookUtils {
 
     public static List<Integer> extractSortedCounts(Map<String, Integer> merged) {
         return merged.values().stream()
-                .filter(q -> q != null && q > 0)
+                .filter(Objects::nonNull)
+                .filter(qty -> qty > 0)
                 .sorted(Comparator.reverseOrder())
                 .toList();
     }

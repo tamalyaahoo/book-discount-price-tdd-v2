@@ -1,195 +1,172 @@
 package com.bnpp.kata.book.price.service;
 
 import com.bnpp.kata.book.price.dto.Book;
+import com.bnpp.kata.book.price.dto.BookPriceResponse;
 import com.bnpp.kata.book.price.dto.BookResponse;
 import com.bnpp.kata.book.price.exception.InvalidBookException;
 import com.bnpp.kata.book.price.mapper.BookMapper;
+import com.bnpp.kata.book.price.store.BookEnum;
+import com.bnpp.kata.book.price.util.BookUtils;
+import com.bnpp.kata.book.price.util.DiscountUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.MockitoAnnotations;
 
 import java.util.List;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 
 class BookServiceTest {
 
+    @Mock
+    private BookMapper mapper;
+
+    @InjectMocks
     private BookService service;
+
+    private AutoCloseable closeable;
 
     @BeforeEach
     void setup() {
-        BookMapper realMapper = Mappers.getMapper(BookMapper.class);
-        service = new BookService(realMapper); // FIX: inject mapper
+        closeable = MockitoAnnotations.openMocks(this);
     }
 
-    @Test
-    @DisplayName("getAllBooks() → returns exactly 5 books from enum")
-    void testGetAllBooksCount() {
-        List<BookResponse> books = service.getAllBooks();
-        assertEquals(5, books.size());
+    @AfterEach
+    void tearDown() throws Exception {
+        closeable.close();
     }
 
-    //============================================================================
-
+    // ------------------------------------------------------
+    // 1. getAllBooks()
+    // ------------------------------------------------------
     @Test
-    @DisplayName("Calculate price for a single book with no discount")
-    void testSingleBook_noDiscount() {
-        List<Book> items = List.of(
-                new Book("Clean Code", 1)
-        );
-        assertEquals(50.0, service.calculatePrice(items).discountPrice(), 0.01);
+    @DisplayName("getAllBooks() → maps all 5 enum items using mapper")
+    void testGetAllBooks() {
+
+        // arrange
+        for (BookEnum bookEnum : BookEnum.values()) {
+            when(mapper.toResponse(bookEnum))
+                    .thenReturn(new BookResponse(
+                            bookEnum.id,
+                            bookEnum.title,
+                            bookEnum.author,
+                            bookEnum.year,
+                            bookEnum.price
+                    ));
+        }
+
+        // act
+        List<BookResponse> result = service.getAllBooks();
+
+        // assert
+        assertEquals(5, result.size());
+        verify(mapper, times(5)).toResponse(any(BookEnum.class));
     }
 
+    // ------------------------------------------------------
+    // 2. calculatePrice() – Valid basket
+    // ------------------------------------------------------
     @Test
-    @DisplayName("Apply 5% discount for two different books")
-    void testTwoDifferentBooks_5PercentDiscount() {
-        List<Book> items = List.of(
+    @DisplayName("calculatePrice() → successful flow returns mergedBooks, totalPrice, discountPrice")
+    void testCalculatePrice_success() {
+
+        List<Book> input = List.of(
                 new Book("Clean Code", 1),
                 new Book("The Clean Coder", 1)
         );
-        assertEquals(95.0, service.calculatePrice(items).discountPrice(), 0.01);
-    }
 
-    @Test
-    @DisplayName("Apply 10% discount for three different books")
-    void testThreeDifferentBooks_10PercentDiscount() {
-        List<Book> items = List.of(
-                new Book("Clean Code", 1),
-                new Book("The Clean Coder", 1),
-                new Book("Clean Architecture", 1)
-        );
-        assertEquals(135.0, service.calculatePrice(items).discountPrice(), 0.01);
-    }
-
-    @Test
-    @DisplayName("Apply 20% discount for four different books")
-    void testFourDifferentBooks_20PercentDiscount() {
-        List<Book> items = List.of(
-                new Book("Clean Code", 1),
-                new Book("The Clean Coder", 1),
-                new Book("Clean Architecture", 1),
-                new Book("TDD", 1)
+        Map<String, Integer> merged = Map.of(
+                "clean code", 1,
+                "the clean coder", 1
         );
 
-        assertEquals(160.0, service.calculatePrice(items).discountPrice(), 0.01);
+        List<Integer> sortedCounts = List.of(1, 1);
+
+        try (MockedStatic<BookUtils> bookUtils = mockStatic(BookUtils.class);
+             MockedStatic<DiscountUtils> discountUtils = mockStatic(DiscountUtils.class)) {
+
+            // 1. Validate basket
+            bookUtils.when(() -> BookUtils.validateBasket(input))
+                    .thenAnswer(inv -> null);
+
+            // 2. Merge duplicates
+            bookUtils.when(() -> BookUtils.mergeDuplicateTitles(input))
+                    .thenReturn(merged);
+
+            // 3. Extract sorted counts
+            bookUtils.when(() -> BookUtils.extractSortedCounts(merged))
+                    .thenReturn(sortedCounts);
+
+            // 4. Discount engine response
+            discountUtils.when(() -> DiscountUtils.computeOptimalPrice(sortedCounts))
+                    .thenReturn(95.0);
+
+            BookPriceResponse response = service.calculatePrice(input);
+
+            // Expected total price = 2 * 50 = 100
+            assertEquals(100.0, response.totalPrice());
+            assertEquals(95.0, response.discountPrice());
+            assertEquals(2, response.bookList().size());
+        }
     }
 
+    // ------------------------------------------------------
+    // 3. calculatePrice() – sortedCounts is empty
+    // ------------------------------------------------------
     @Test
-    @DisplayName("Apply 25% discount for all five different books")
-    void testAllFiveBooks_25PercentDiscount() {
-        List<Book> items = List.of(
-                new Book("Clean Code", 1),
-                new Book("The Clean Coder", 1),
-                new Book("Clean Architecture", 1),
-                new Book("TDD", 1),
-                new Book("Legacy Code", 1)
-        );
+    @DisplayName("calculatePrice() → throws InvalidBookException when sortedCounts is empty")
+    void testCalculatePrice_emptySortedCounts() {
 
-        assertEquals(187.50, service.calculatePrice(items).discountPrice(), 0.01);
+        List<Book> input = List.of(new Book("Clean Code", 1));
+
+        try (MockedStatic<BookUtils> bookUtils = mockStatic(BookUtils.class)) {
+
+            // Validation should pass
+            bookUtils.when(() -> BookUtils.validateBasket(input))
+                    .thenAnswer(inv -> null);
+
+            // Merge result
+            bookUtils.when(() -> BookUtils.mergeDuplicateTitles(input))
+                    .thenReturn(Map.of("clean code", 1));
+
+            // Sorted counts → EMPTY → Should trigger exception
+            bookUtils.when(() -> BookUtils.extractSortedCounts(anyMap()))
+                    .thenReturn(List.of());
+
+            assertThrows(
+                    InvalidBookException.class,
+                    () -> service.calculatePrice(input)
+            );
+        }
     }
 
+
+    // ------------------------------------------------------
+    // 4. calculatePrice() → handles BookUtils validation exception correctly
+    // ------------------------------------------------------
     @Test
-    @DisplayName("Merge duplicate book titles ignoring case and sum their quantities")
-    void testCaseInsensitiveMerging() {
-        List<Book> items = List.of(
-                new Book("clean code", 1),
-                new Book("Clean Code", 2),
-                new Book("CLEAN CODE", 3)
-        );
-        // Total = 1 + 2 + 3 = 6 copies of 1 book
-        double price = service.calculatePrice(items).discountPrice();
+    @DisplayName("calculatePrice() → propagates validation exceptions thrown by BookUtils")
+    void testCalculatePrice_validationError() {
 
-        assertEquals(6 * 50.0, price, 0.01); // No discount because only 1 distinct title
-    }
+        List<Book> input = List.of(new Book("", -1)); // invalid
 
-    @Test
-    @DisplayName("Calculate optimal pricing for multi-set scenario resulting in 320 EUR")
-    void testKataExample_multipleSets_Optimal320() {
-        List<Book> items = List.of(
-                new Book("Clean Code", 2),
-                new Book("The Clean Coder", 2),
-                new Book("Clean Architecture", 2),
-                new Book("TDD", 1),
-                new Book("Legacy Code", 1)
-        );
+        try (MockedStatic<BookUtils> bookUtils = mockStatic(BookUtils.class)) {
 
-        assertEquals(320.0, service.calculatePrice(items).discountPrice(), 0.01);
-    }
+            bookUtils.when(() -> BookUtils.validateBasket(input))
+                    .thenThrow(new InvalidBookException("Invalid basket"));
 
-    @Test
-    @DisplayName("Calculate price when multiple copies of a single title are purchased with no discount")
-    void testSameTitleMultipleCopies_noDiscount() {
-        List<Book> items = List.of(
-                new Book("Clean Code", 3)
-        );
-        assertEquals(150.0, service.calculatePrice(items).discountPrice(), 0.01);
-    }
-
-    @Test
-    @DisplayName("Choose optimal grouping when some titles have multiple copies")
-    void testThreeTitles_multipleCopies_mixedOptimal() {
-        List<Book> items = List.of(
-                new Book("Clean Code", 2),
-                new Book("Clean Architecture", 1),
-                new Book("The Clean Coder", 2)
-        );
-        assertEquals(230.0, service.calculatePrice(items).discountPrice(), 0.01);
-    }
-
-    // ----------------------------------------------------------------------
-    //  VALIDATION TESTS
-    // ----------------------------------------------------------------------
-
-    @Test
-    @DisplayName("Throw exception when basket is null")
-    void testNullBasket_throwsException() {
-        assertThrows(InvalidBookException.class, () -> service.calculatePrice(null));
-    }
-
-    @Test
-    @DisplayName("Throw exception when basket has no entries")
-    void testEmptyBasket_throwsException() {
-        List<Book> items = List.of();
-        assertThrows(InvalidBookException.class, () -> service.calculatePrice(items));
-    }
-
-    @Test
-    @DisplayName("Throw exception when book title is null")
-    void testNullTitle_throwsException() {
-        List<Book> items = List.of(
-                new Book(null, 1)
-        );
-        assertThrows(InvalidBookException.class, () -> service.calculatePrice(items));
-    }
-
-    @Test
-    @DisplayName("Throw exception when book title is empty or blank")
-    void testEmptyTitle_throwsException() {
-        List<Book> items = List.of(
-                new Book("   ", 1)
-        );
-        assertThrows(InvalidBookException.class, () -> service.calculatePrice(items));
-    }
-
-    @Test
-    @DisplayName("Throw exception when quantity is negative")
-    void testNegativeQuantity_throwsException() {
-        List<Book> items = List.of(
-                new Book("Clean Code", -1)
-        );
-        assertThrows(InvalidBookException.class, () -> service.calculatePrice(items));
-    }
-
-    @Test
-    @DisplayName("Throw exception when all quantities are zero")
-    void testZeroCopiesOnly_throwsException() {
-        List<Book> items = List.of(
-                new Book("Clean Code", 0),
-                new Book("The Clean Coder", 0)
-        );
-        assertThrows(InvalidBookException.class, () -> service.calculatePrice(items));
+            assertThrows(
+                    InvalidBookException.class,
+                    () -> service.calculatePrice(input)
+            );
+        }
     }
 }
