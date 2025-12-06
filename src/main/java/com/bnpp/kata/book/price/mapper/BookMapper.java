@@ -4,12 +4,12 @@ import com.bnpp.kata.book.price.dto.BookResponse;
 import com.bnpp.kata.book.price.store.BookEnum;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
-/*@Mapper(
+@Mapper(
         componentModel = "spring",
         unmappedTargetPolicy = ReportingPolicy.ERROR
-)*/
-@Mapper(componentModel = "default")
+)
 public interface BookMapper {
 
     @Mapping(target = "id", source = "id")
