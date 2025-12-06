@@ -19,11 +19,11 @@ class BookEnumTest {
     void testBookEnumRecordMapping() {
         BookEnum book = BookEnum.CLEAN_CODE;
 
-        assertEquals(1, book.id());
-        assertEquals("Clean Code", book.title());
-        assertEquals("Robert Martin", book.author());
-        assertEquals(2008, book.year());
-        assertEquals(50.0, book.price());
+        assertEquals(1, book.id);
+        assertEquals("Clean Code", book.title);
+        assertEquals("Robert Martin", book.author);
+        assertEquals(2008, book.year);
+        assertEquals(50.0, book.price);
     }
 
 }

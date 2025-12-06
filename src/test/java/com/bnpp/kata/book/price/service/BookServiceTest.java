@@ -7,7 +7,7 @@ import com.bnpp.kata.book.price.mapper.BookMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
+import org.mapstruct.factory.Mappers;
 
 import java.util.List;
 
@@ -19,19 +19,16 @@ class BookServiceTest {
 
     private BookService service;
 
-    @Mock
-    private BookMapper mapper;
-
     @BeforeEach
     void setup() {
-        service = new BookService(mapper); // FIX: inject mapper
+        BookMapper realMapper = Mappers.getMapper(BookMapper.class);
+        service = new BookService(realMapper); // FIX: inject mapper
     }
 
     @Test
     @DisplayName("getAllBooks() → returns exactly 5 books from enum")
     void testGetAllBooksCount() {
-        List<BookResponse> books;
-        books = service.getAllBooks();
+        List<BookResponse> books = service.getAllBooks();
         assertEquals(5, books.size());
     }
 
@@ -43,7 +40,7 @@ class BookServiceTest {
         List<Book> items = List.of(
                 new Book("Clean Code", 1)
         );
-        assertEquals(50.0, service.calculatePrice(items).totalPrice(), 0.01);
+        assertEquals(50.0, service.calculatePrice(items).discountPrice(), 0.01);
     }
 
     @Test
@@ -53,7 +50,7 @@ class BookServiceTest {
                 new Book("Clean Code", 1),
                 new Book("The Clean Coder", 1)
         );
-        assertEquals(95.0, service.calculatePrice(items).totalPrice(), 0.01);
+        assertEquals(95.0, service.calculatePrice(items).discountPrice(), 0.01);
     }
 
     @Test
@@ -64,7 +61,7 @@ class BookServiceTest {
                 new Book("The Clean Coder", 1),
                 new Book("Clean Architecture", 1)
         );
-        assertEquals(135.0, service.calculatePrice(items).totalPrice(), 0.01);
+        assertEquals(135.0, service.calculatePrice(items).discountPrice(), 0.01);
     }
 
     @Test
@@ -77,7 +74,7 @@ class BookServiceTest {
                 new Book("TDD", 1)
         );
 
-        assertEquals(160.0, service.calculatePrice(items).totalPrice(), 0.01);
+        assertEquals(160.0, service.calculatePrice(items).discountPrice(), 0.01);
     }
 
     @Test
@@ -91,7 +88,7 @@ class BookServiceTest {
                 new Book("Legacy Code", 1)
         );
 
-        assertEquals(187.50, service.calculatePrice(items).totalPrice(), 0.01);
+        assertEquals(187.50, service.calculatePrice(items).discountPrice(), 0.01);
     }
 
     @Test
@@ -103,7 +100,7 @@ class BookServiceTest {
                 new Book("CLEAN CODE", 3)
         );
         // Total = 1 + 2 + 3 = 6 copies of 1 book
-        double price = service.calculatePrice(items).totalPrice();
+        double price = service.calculatePrice(items).discountPrice();
 
         assertEquals(6 * 50.0, price, 0.01); // No discount because only 1 distinct title
     }
@@ -119,7 +116,7 @@ class BookServiceTest {
                 new Book("Legacy Code", 1)
         );
 
-        assertEquals(320.0, service.calculatePrice(items).totalPrice(), 0.01);
+        assertEquals(320.0, service.calculatePrice(items).discountPrice(), 0.01);
     }
 
     @Test
@@ -128,7 +125,7 @@ class BookServiceTest {
         List<Book> items = List.of(
                 new Book("Clean Code", 3)
         );
-        assertEquals(150.0, service.calculatePrice(items).totalPrice(), 0.01);
+        assertEquals(150.0, service.calculatePrice(items).discountPrice(), 0.01);
     }
 
     @Test
@@ -139,7 +136,7 @@ class BookServiceTest {
                 new Book("Clean Architecture", 1),
                 new Book("The Clean Coder", 2)
         );
-        assertEquals(230.0, service.calculatePrice(items).totalPrice(), 0.01);
+        assertEquals(230.0, service.calculatePrice(items).discountPrice(), 0.01);
     }
 
     // ----------------------------------------------------------------------

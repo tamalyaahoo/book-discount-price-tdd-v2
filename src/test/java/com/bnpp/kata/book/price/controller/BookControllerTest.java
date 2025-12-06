@@ -60,7 +60,7 @@ class BookControllerTest {
 
         // Mock service response
           Mockito.when(bookService.calculatePrice(anyList()))
-                 .thenReturn(new BookPriceResponse(95.0));
+                 .thenReturn(new BookPriceResponse(List.of(), 100.0,95.0));
 
         // Create request JSON
         String requestJson = """
@@ -79,7 +79,7 @@ class BookControllerTest {
                                 .content(requestJson)
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalPrice").value(95.0));
+                .andExpect(jsonPath("$.discountPrice").value(95.0));
     }
 
     @Test
