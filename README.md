@@ -196,6 +196,8 @@ Once the application started successfully, you can access the application by lau
 		
 	http://localhost:<PORT>/
 
+** /book-discount-price-tdd-v2/target/site/jacoco/index.html
 
+![img.png](img.png)
 
 
